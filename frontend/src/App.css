@@ -1,82 +1,59 @@
-.avocado-wrap {
+.avo-wrap {
   text-align: center;
 }
 
-.avocado {
-  width: 120px;
-  height: 150px;
-  background: #22c55e;
-  border-radius: 60% 60% 50% 50%;
-  position: relative;
-  margin: 0 auto;
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
-  animation: avocado-walk 2.2s ease-in-out infinite;
+.avo-svg {
+  width: 140px;
+  height: auto;
+  animation: avo-pop 2s ease-in-out infinite;
 }
 
-.leaf {
-  width: 35px;
-  height: 22px;
-  background: #15803d;
-  border-radius: 50% 0 50% 0;
-  position: absolute;
-  top: -18px;
-  left: 45px;
-  transform: rotate(-20deg);
+.avo-wave-hand {
+  transform-origin: 48px 135px;
+  animation: avo-wave-updown 1s ease-in-out infinite;
 }
 
-.face {
-  display: flex;
-  justify-content: center;
-  gap: 25px;
-  padding-top: 45px;
-  color: #064e3b;
-  font-size: 14px;
+.avo-leg-left {
+  animation: tiny-step-left 1s ease-in-out infinite;
 }
 
-.smile {
-  text-align: center;
-  color: #064e3b;
-  font-size: 28px;
-  margin-top: -5px;
+.avo-leg-right {
+  animation: tiny-step-right 1s ease-in-out infinite;
 }
 
-.bowl {
-  font-size: 42px;
-  position: absolute;
-  bottom: 18px;
-  left: 38px;
-  animation: bowl-bounce 1s ease-in-out infinite;
-}
-
-.mascot-text {
-  margin-top: 10px;
-  font-weight: 700;
-  color: #15803d;
-}
-
-@keyframes avocado-walk {
-  0% {
-    transform: translateX(0) rotate(-2deg);
-  }
-  25% {
-    transform: translateX(8px) rotate(2deg);
+@keyframes avo-pop {
+  0%, 100% {
+    transform: translateY(0) scale(1);
   }
   50% {
-    transform: translateX(0) rotate(-2deg);
-  }
-  75% {
-    transform: translateX(-8px) rotate(2deg);
-  }
-  100% {
-    transform: translateX(0) rotate(-2deg);
+    transform: translateY(-8px) scale(1.04);
   }
 }
 
-@keyframes bowl-bounce {
+@keyframes avo-wave-updown {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0);
+  }
+
+  50% {
+    transform: rotate(-28deg) translateY(-8px);
+  }
+}
+
+@keyframes tiny-step-left {
   0%, 100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes tiny-step-right {
+  0%, 100% {
+    transform: translateY(-3px);
+  }
+  50% {
+    transform: translateY(0);
   }
 }
