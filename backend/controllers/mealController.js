@@ -1,12 +1,11 @@
 const axios = require('axios');
 const User = require('../models/User');
 
-const EDAMAM_APP_ID = process.env.EDAMAM_APP_ID;
-const EDAMAM_APP_KEY = process.env.EDAMAM_APP_KEY;
-const EDAMAM_BASE_URL = 'https://api.edamam.com/api/recipes/v2';
+const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
+const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com/recipes/complexSearch';
 
-// Rough activity multipliers for estimating daily calories (Mifflin-St Jeor style
-// simplification — good enough for a class project, not a medical tool)
+// Rough activity multipliers for estimating daily calories (simplified —
+// good enough for a class project, not a medical tool)
 const ACTIVITY_MULTIPLIERS = {
   sedentary: 1.2,
   light: 1.375,
@@ -24,8 +23,6 @@ const MEAL_CALORIE_SPLIT = {
 };
 
 const calculateDailyCalories = (user) => {
-  // Simple baseline estimate since we only collect weight range, not exact
-  // weight/age/sex. Good enough to drive meal search ranges for this project.
   const baseCalories = 2000;
   const multiplier = ACTIVITY_MULTIPLIERS[user.activityLevel?.toLowerCase()] || 1.375;
 
@@ -37,37 +34,38 @@ const calculateDailyCalories = (user) => {
   return Math.round(target);
 };
 
-const fetchMealFromEdamam = async (mealType, targetCalories) => {
-  const calorieRange = `${Math.round(targetCalories * 0.8)}-${Math.round(targetCalories * 1.2)}`;
+const fetchMealFromSpoonacular = async (mealType, targetCalories) => {
+  const minCalories = Math.round(targetCalories * 0.8);
+  const maxCalories = Math.round(targetCalories * 1.2);
 
-  const response = await axios.get(EDAMAM_BASE_URL, {
+  const response = await axios.get(SPOONACULAR_BASE_URL, {
     params: {
-      type: 'public',
-      app_id: EDAMAM_APP_ID,
-      app_key: EDAMAM_APP_KEY,
-      mealType,
-      calories: calorieRange,
-      random: true,
-    },
-    headers: {
-      'Edamam-Account-User': EDAMAM_APP_ID, // required by Edamam v2 API
+      apiKey: SPOONACULAR_API_KEY,
+      type: mealType, // breakfast, main course (lunch/dinner), snack
+      minCalories,
+      maxCalories,
+      number: 10, // pull a handful so we can pick randomly for variety
+      addRecipeInformation: true,
+      addRecipeNutrition: true,
     },
   });
 
-  const hits = response.data.hits;
-  if (!hits || hits.length === 0) {
+  const results = response.data.results;
+  if (!results || results.length === 0) {
     return null;
   }
 
-  // Pick a random result from what came back so "regenerate" gives variety
-  const recipe = hits[Math.floor(Math.random() * hits.length)].recipe;
+  // Pick a random result so "regenerate" gives variety
+  const recipe = results[Math.floor(Math.random() * results.length)];
+
+  const calorieInfo = recipe.nutrition?.nutrients?.find((n) => n.name === 'Calories');
 
   return {
-    label: recipe.label,
+    label: recipe.title,
     image: recipe.image,
-    calories: Math.round(recipe.calories),
-    url: recipe.url,
-    ingredientLines: recipe.ingredientLines,
+    calories: calorieInfo ? Math.round(calorieInfo.amount) : null,
+    url: recipe.sourceUrl || `https://spoonacular.com/recipes/${recipe.id}`,
+    readyInMinutes: recipe.readyInMinutes,
   };
 };
 
@@ -86,11 +84,12 @@ const generateMealPlan = async (req, res) => {
 
     const dailyCalories = calculateDailyCalories(user);
 
+    // Spoonacular uses "main course" instead of separate lunch/dinner types
     const [breakfast, lunch, dinner, snack] = await Promise.all([
-      fetchMealFromEdamam('breakfast', dailyCalories * MEAL_CALORIE_SPLIT.breakfast),
-      fetchMealFromEdamam('lunch', dailyCalories * MEAL_CALORIE_SPLIT.lunch),
-      fetchMealFromEdamam('dinner', dailyCalories * MEAL_CALORIE_SPLIT.dinner),
-      fetchMealFromEdamam('snack', dailyCalories * MEAL_CALORIE_SPLIT.snack),
+      fetchMealFromSpoonacular('breakfast', dailyCalories * MEAL_CALORIE_SPLIT.breakfast),
+      fetchMealFromSpoonacular('main course', dailyCalories * MEAL_CALORIE_SPLIT.lunch),
+      fetchMealFromSpoonacular('main course', dailyCalories * MEAL_CALORIE_SPLIT.dinner),
+      fetchMealFromSpoonacular('snack', dailyCalories * MEAL_CALORIE_SPLIT.snack),
     ]);
 
     res.status(200).json({
