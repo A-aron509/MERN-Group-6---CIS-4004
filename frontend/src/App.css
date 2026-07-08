@@ -1,0 +1,82 @@
+.avocado-wrap {
+  text-align: center;
+}
+
+.avocado {
+  width: 120px;
+  height: 150px;
+  background: #22c55e;
+  border-radius: 60% 60% 50% 50%;
+  position: relative;
+  margin: 0 auto;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+  animation: avocado-walk 2.2s ease-in-out infinite;
+}
+
+.leaf {
+  width: 35px;
+  height: 22px;
+  background: #15803d;
+  border-radius: 50% 0 50% 0;
+  position: absolute;
+  top: -18px;
+  left: 45px;
+  transform: rotate(-20deg);
+}
+
+.face {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  padding-top: 45px;
+  color: #064e3b;
+  font-size: 14px;
+}
+
+.smile {
+  text-align: center;
+  color: #064e3b;
+  font-size: 28px;
+  margin-top: -5px;
+}
+
+.bowl {
+  font-size: 42px;
+  position: absolute;
+  bottom: 18px;
+  left: 38px;
+  animation: bowl-bounce 1s ease-in-out infinite;
+}
+
+.mascot-text {
+  margin-top: 10px;
+  font-weight: 700;
+  color: #15803d;
+}
+
+@keyframes avocado-walk {
+  0% {
+    transform: translateX(0) rotate(-2deg);
+  }
+  25% {
+    transform: translateX(8px) rotate(2deg);
+  }
+  50% {
+    transform: translateX(0) rotate(-2deg);
+  }
+  75% {
+    transform: translateX(-8px) rotate(2deg);
+  }
+  100% {
+    transform: translateX(0) rotate(-2deg);
+  }
+}
+
+@keyframes bowl-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}

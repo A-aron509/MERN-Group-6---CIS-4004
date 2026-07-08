@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import AvocadoMascot from "../components/AvocadoMascot";
 
 function MealPlan() {
   const meals = [
@@ -39,23 +41,29 @@ function MealPlan() {
   return (
     <div className="container-fluid min-vh-100 bg-light p-4">
       <div className="container">
-        <nav className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="text-success fw-bold">🌿 StayFresh</h2>
-          <div>
-            <Link to="/dashboard" className="btn btn-outline-success me-2">
-              Dashboard
-            </Link>
-            <Link to="/" className="btn btn-success">
-              Logout
-            </Link>
-          </div>
-        </nav>
+        <Navbar />
 
-        <div className="mb-4">
-          <h1 className="fw-bold">Your Meal Plan</h1>
-          <p className="text-muted">
-            Today&apos;s personalized meals based on your fitness goal.
-          </p>
+        <div className="card border-0 shadow rounded-4 p-4 mb-4 bg-success bg-opacity-10">
+          <div className="row align-items-center">
+            <div className="col-md-9">
+              <h1 className="fw-bold text-success mb-2">
+                🍽️ Your Meal Plan
+              </h1>
+
+              <p className="text-muted mb-3">
+                Your meals have been personalized based on your fitness goal,
+                activity level, and nutrition preferences.
+              </p>
+
+              <button className="btn btn-success">
+                ✨ Regenerate Meal Plan
+              </button>
+            </div>
+
+            <div className="col-md-3 text-center">
+              <AvocadoMascot />
+            </div>
+          </div>
         </div>
 
         <div className="row g-4 mb-4">
@@ -95,6 +103,7 @@ function MealPlan() {
                     </h4>
                     <h5 className="text-success">{meal.name}</h5>
                   </div>
+
                   <span className="badge bg-success bg-opacity-10 text-success p-2">
                     {meal.calories}
                   </span>
@@ -104,6 +113,7 @@ function MealPlan() {
 
                 <div className="d-flex justify-content-between align-items-center mt-3">
                   <small className="fw-semibold">{meal.protein}</small>
+
                   <button className="btn btn-outline-success btn-sm">
                     Swap Meal
                   </button>
@@ -111,12 +121,6 @@ function MealPlan() {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="text-center mt-5">
-          <button className="btn btn-success btn-lg px-5">
-            Regenerate Meal Plan
-          </button>
         </div>
       </div>
     </div>

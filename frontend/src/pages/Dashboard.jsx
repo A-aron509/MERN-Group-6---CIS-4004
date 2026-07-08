@@ -1,17 +1,11 @@
 import { Link } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 function Dashboard() {
   return (
     <div className="container-fluid min-vh-100 bg-light p-4">
       <div className="container">
-        <nav className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="text-success fw-bold">🌿 StayFresh</h2>
-          <div>
-            <Link to="/" className="btn btn-outline-success me-2">
-              Logout
-            </Link>
-          </div>
-        </nav>
+        <Navbar />
 
         <div className="mb-4">
           <h1 className="fw-bold">Welcome back!</h1>
