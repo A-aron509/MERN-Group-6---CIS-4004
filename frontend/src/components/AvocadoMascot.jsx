@@ -39,15 +39,7 @@ function AvocadoMascot() {
           fill="#eef7a1"
         />
 
-        <path
-          d="M110 45
-             C88 45 74 65 68 98
-             C60 140 63 181 84 202
-             C98 216 122 216 136 202
-             C157 181 160 140 152 98
-             C146 65 132 45 110 45Z"
-          fill="#eef7a1"
-        />
+        
 
         <circle cx="83" cy="105" r="12" fill="#3b2417" />
         <circle cx="137" cy="105" r="12" fill="#3b2417" />
