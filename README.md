@@ -1,5 +1,5 @@
 # MERN-Group-6---CIS-4004
-CIS 4004 Summer 2026
+CIS 4004 Summer 2026.
 
 # StayFresh
 
