@@ -9,11 +9,13 @@ const SALT_ROUNDS = 10;
 // POST /api/auth/register
 const register = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { fullName, email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required.' });
-    }
+    if (!fullName || !email || !password) {
+  return res.status(400).json({
+    message: 'Full name, email, and password are required.'
+  });
+}
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -24,6 +26,7 @@ const register = async (req, res) => {
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     const newUser = await User.create({
+      fullName: fullName.trim(),
       email,
       password: hashedPassword,
       verificationToken,
@@ -72,9 +75,11 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required.' });
-    }
+if (!email || !password) {
+  return res.status(400).json({
+    message: 'Email and password are required.'
+  });
+}
 
     const user = await User.findOne({ email });
     if (!user) {
