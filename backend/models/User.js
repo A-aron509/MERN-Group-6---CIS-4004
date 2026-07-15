@@ -2,25 +2,41 @@ const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema(
   {
-    email: {
+    fullName: 
+    {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    
+    email: 
+    {
       type: String,
       required: true,
       unique: true,
       lowercase: true,
       trim: true,
     },
-    password: {
+    
+    password: 
+    {
       type: String,
       required: true, // hashed, never stored in plain text
     },
-    isVerified: {
+   
+    isVerified: 
+    {
       type: Boolean,
       default: false,
     },
-    verificationToken: {
+   
+    verificationToken: 
+    {
       type: String,
     },
-    verificationTokenExpires: {
+    
+    verificationTokenExpires: 
+    {
       type: Date,
     },
 
