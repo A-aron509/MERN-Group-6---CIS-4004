@@ -21,7 +21,15 @@ const UserSchema = new mongoose.Schema(
     password: 
     {
       type: String,
-      required: true, // hashed, never stored in plain text
+      required: function () {
+        return !this.googleId; // only required for regular email/password accounts
+      },
+    },
+
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // lets many users have no googleId without a uniqueness conflict
     },
    
     isVerified: 

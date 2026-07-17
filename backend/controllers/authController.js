@@ -1,10 +1,12 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { sendVerificationEmail } = require('../utils/sendEmail');
 
 const SALT_ROUNDS = 10;
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // POST /api/auth/register
 const register = async (req, res) => {
@@ -116,4 +118,68 @@ if (!email || !password) {
   }
 };
 
-module.exports = { register, login, verifyEmail };
+// POST /api/auth/google
+// Frontend sends the ID token it got from Google Sign-In. We verify it,
+// then find or create the matching user and issue our own JWT — same
+// shape as a normal login response.
+const googleAuth = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ message: 'Google ID token is required.' });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    const { sub: googleId, email, name } = payload;
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (user) {
+      // If they registered with email/password before and are now using
+      // Google with the same email, link the accounts.
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.isVerified = true; // Google already verified this email
+        if (!user.fullName) {
+          user.fullName = name || email.split('@')[0]; // backfill for older accounts
+        }
+        await user.save();
+      }
+    } else {
+      user = await User.create({
+        fullName: name || email.split('@')[0],
+        email,
+        googleId,
+        isVerified: true, // Google-verified email, no need for our own link
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      message: 'Google login successful.',
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        profileComplete: user.profileComplete,
+      },
+    });
+  } catch (err) {
+    console.error('Google auth error:', err);
+    res.status(401).json({ message: 'Google authentication failed.' });
+  }
+};
+
+module.exports = { register, login, verifyEmail, googleAuth };
