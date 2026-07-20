@@ -109,6 +109,7 @@ if (!email || !password) {
       user: {
         id: user._id,
         email: user.email,
+        fullName: user.fullName,
         profileComplete: user.profileComplete,
       },
     });
