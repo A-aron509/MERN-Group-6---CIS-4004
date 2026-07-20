@@ -2,13 +2,18 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 function Dashboard() {
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+  
   return (
     <div className="container-fluid min-vh-100 bg-light p-4">
       <div className="container">
         <Navbar />
 
         <div className="mb-4">
-          <h1 className="fw-bold">Welcome back!</h1>
+          <h1 className="fw-bold">
+            Welcome back, {user?.fullName || "StayFresh user"}!
+          </h1>
           <p className="text-muted">
             Here is your personalized wellness dashboard for today.
           </p>
