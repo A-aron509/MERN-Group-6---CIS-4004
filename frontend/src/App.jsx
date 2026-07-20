@@ -4,6 +4,7 @@ import Register from "./pages/Register";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import MealPlan from "./pages/MealPlan";
+import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/meal-plan" element={<MealPlan />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     </BrowserRouter>
   );
