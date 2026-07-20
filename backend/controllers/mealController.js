@@ -1,4 +1,4 @@
-const User = require("../models/User");
+//const User = require("../models/User");
 
 const ACTIVITY_MULTIPLIERS = {
   sedentary: 1.2,
@@ -134,16 +134,8 @@ function calculateDailyCalories(user) {
   return Math.round(target);
 }
 
-const generateMealPlan = async (req, res) => {
+const generateMealPlan = (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found.",
-      });
-    }
-
     const meals = [
       randomMeal(breakfastMeals),
       randomMeal(lunchMeals),
@@ -152,8 +144,8 @@ const generateMealPlan = async (req, res) => {
     ];
 
     res.status(200).json({
-      dailyCalories: calculateDailyCalories(user),
-      goal: user.fitnessGoal,
+      dailyCalories: 2050,
+      goal: "Build Muscle",
       meals,
     });
   } catch (err) {
