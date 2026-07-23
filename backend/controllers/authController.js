@@ -241,8 +241,10 @@ const setupTwoFactor = async (req, res) => {
 
     const qrCode = await QRCode.toDataURL(uri);
 
-    user.twoFactorSecret = secret;
-    await user.save();
+   await User.updateOne(
+    { _id: user._id },
+    { $set: { twoFactorSecret: secret } }
+  );
 
     return res.status(200).json({
       message: 'Scan the QR code with your authenticator app.',
@@ -304,8 +306,10 @@ const confirmTwoFactor = async (req, res) => {
       });
     }
 
-    user.twoFactorEnabled = true;
-    await user.save();
+   await User.updateOne(
+    { _id: user._id },
+    { $set: { twoFactorEnabled: true } }
+  );
 
     return res.status(200).json({
       message: 'Two-factor authentication has been enabled successfully.',
