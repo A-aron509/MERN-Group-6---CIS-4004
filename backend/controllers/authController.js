@@ -194,4 +194,62 @@ const googleAuth = async (req, res) => {
   }
 };
 
-module.exports = { register, login, verifyEmail, googleAuth };
+// POST /api/auth/2fa/setup
+const setupTwoFactor = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({
+        message: 'Please verify your email before enabling two-factor authentication.',
+      });
+    }
+
+    if (user.twoFactorEnabled) {
+      return res.status(400).json({
+        message: 'Two-factor authentication is already enabled.',
+      });
+    }
+
+    const { generateSecret, generateURI } = await getOtplib();
+
+    const secret = generateSecret();
+
+    const uri = generateURI({
+      issuer: 'StayFresh',
+      label: user.email,
+      secret,
+    });
+
+    const qrCode = await QRCode.toDataURL(uri);
+
+    user.twoFactorSecret = secret;
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Scan the QR code with your authenticator app.',
+      qrCode,
+      manualKey: secret,
+    });
+  } catch (err) {
+    console.error('2FA setup error:', err);
+
+    return res.status(500).json({
+      message: 'Server error while setting up two-factor authentication.',
+    });
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  verifyEmail,
+  googleAuth,
+  setupTwoFactor,
+};
