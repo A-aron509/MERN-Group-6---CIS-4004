@@ -4,9 +4,20 @@ const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { sendVerificationEmail } = require('../utils/sendEmail');
+const QRCode = require('qrcode');
 
 const SALT_ROUNDS = 10;
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+let otplib;
+
+const getOtplib = async () => {
+  if (!otplib) {
+    otplib = await import('otplib');
+  }
+
+  return otplib;
+};
 
 // POST /api/auth/register
 const register = async (req, res) => {
