@@ -1,8 +1,5 @@
 const nodemailer = require('nodemailer');
 
-// Uses Gmail here as an easy starting point (works with a Google App Password,
-// not your normal password). Swap the transporter config later for SendGrid,
-// Mailgun, etc. if you want something more "production" for the demo.
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -29,4 +26,22 @@ const sendVerificationEmail = async (toEmail, token) => {
   await transporter.sendMail(mailOptions);
 };
 
-module.exports = { sendVerificationEmail };
+const sendPasswordResetEmail = async (toEmail, token) => {
+  const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+
+  const mailOptions = {
+    from: `StayFresh <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: 'Reset your StayFresh password',
+    html: `
+      <h2>Password Reset Request</h2>
+      <p>Click the link below to set a new password:</p>
+      <a href="${resetUrl}">${resetUrl}</a>
+      <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail };

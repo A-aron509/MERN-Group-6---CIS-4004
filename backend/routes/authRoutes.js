@@ -9,6 +9,8 @@ const {
   setupTwoFactor,
   confirmTwoFactor,
   verifyTwoFactorLogin,
+  forgotPassword,
+  resetPassword,
 } = require('../controllers/authController');
 
 const requireAuth = require('../middleware/auth');
@@ -17,6 +19,8 @@ router.post('/register', register);
 router.post('/login', login);
 router.get('/verify-email', verifyEmail);
 router.post('/google', googleAuth);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 router.post('/2fa/setup', requireAuth, setupTwoFactor);
 router.post('/2fa/confirm', requireAuth, confirmTwoFactor);

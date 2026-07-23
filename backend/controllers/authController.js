@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
-const { sendVerificationEmail } = require('../utils/sendEmail');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/sendEmail');
 const QRCode = require('qrcode');
 
 const SALT_ROUNDS = 10;
@@ -25,10 +25,10 @@ const register = async (req, res) => {
     const { fullName, email, password } = req.body;
 
     if (!fullName || !email || !password) {
-  return res.status(400).json({
-    message: 'Full name, email, and password are required.'
-  });
-}
+      return res.status(400).json({
+        message: 'Full name, email, and password are required.'
+      });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -88,11 +88,11 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-if (!email || !password) {
-  return res.status(400).json({
-    message: 'Email and password are required.'
-  });
-}
+    if (!email || !password) {
+      return res.status(400).json({
+        message: 'Email and password are required.'
+      });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -109,22 +109,22 @@ if (!email || !password) {
     }
 
     if (user.twoFactorEnabled) {
-  const twoFactorToken = jwt.sign(
-    {
-      userId: user._id,
-      purpose: '2fa-login',
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: '5m' }
-  );
+      const twoFactorToken = jwt.sign(
+        {
+          userId: user._id,
+          purpose: '2fa-login',
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '5m' }
+      );
 
-  return res.status(200).json({
-    message: 'Enter the code from your authenticator app.',
-    requiresTwoFactor: true,
-    twoFactorToken,
-  });
-}
-    
+      return res.status(200).json({
+        message: 'Enter the code from your authenticator app.',
+        requiresTwoFactor: true,
+        twoFactorToken,
+      });
+    }
+
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
@@ -148,9 +148,6 @@ if (!email || !password) {
 };
 
 // POST /api/auth/google
-// Frontend sends the ID token it got from Google Sign-In. We verify it,
-// then find or create the matching user and issue our own JWT — same
-// shape as a normal login response.
 const googleAuth = async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -170,13 +167,11 @@ const googleAuth = async (req, res) => {
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
     if (user) {
-      // If they registered with email/password before and are now using
-      // Google with the same email, link the accounts.
       if (!user.googleId) {
         user.googleId = googleId;
-        user.isVerified = true; // Google already verified this email
+        user.isVerified = true;
         if (!user.fullName) {
-          user.fullName = name || email.split('@')[0]; // backfill for older accounts
+          user.fullName = name || email.split('@')[0];
         }
         await user.save();
       }
@@ -185,7 +180,7 @@ const googleAuth = async (req, res) => {
         fullName: name || email.split('@')[0],
         email,
         googleId,
-        isVerified: true, // Google-verified email, no need for our own link
+        isVerified: true,
       });
     }
 
@@ -403,6 +398,81 @@ const verifyTwoFactorLogin = async (req, res) => {
   }
 };
 
+// POST /api/auth/forgot-password
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Always return the same success message whether or not the account
+    // exists — this avoids letting people probe which emails are registered.
+    if (!user) {
+      return res.status(200).json({
+        message: 'If an account exists with that email, a reset link has been sent.',
+      });
+    }
+
+    if (user.googleId && !user.password) {
+      return res.status(400).json({
+        message: 'This account uses Google Sign-In. Please log in with Google instead.',
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+    await user.save();
+
+    await sendPasswordResetEmail(user.email, resetToken);
+
+    res.status(200).json({
+      message: 'If an account exists with that email, a reset link has been sent.',
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Server error processing password reset request.' });
+  }
+};
+
+// POST /api/auth/reset-password
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required.' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset link.' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successfully. You can now log in.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: 'Server error resetting password.' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -411,4 +481,6 @@ module.exports = {
   setupTwoFactor,
   confirmTwoFactor,
   verifyTwoFactorLogin,
+  forgotPassword,
+  resetPassword,
 };
