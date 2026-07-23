@@ -108,6 +108,23 @@ if (!email || !password) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
+    if (user.twoFactorEnabled) {
+  const twoFactorToken = jwt.sign(
+    {
+      userId: user._id,
+      purpose: '2fa-login',
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '5m' }
+  );
+
+  return res.status(200).json({
+    message: 'Enter the code from your authenticator app.',
+    requiresTwoFactor: true,
+    twoFactorToken,
+  });
+}
+    
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
@@ -246,10 +263,91 @@ const setupTwoFactor = async (req, res) => {
   }
 };
 
+// POST /api/auth/2fa/login
+const verifyTwoFactorLogin = async (req, res) => {
+  try {
+    const { twoFactorToken, token } = req.body;
+    const normalizedToken = String(token || '').trim();
+
+    if (!twoFactorToken || !/^\d{6}$/.test(normalizedToken)) {
+      return res.status(400).json({
+        message: 'A login verification token and six-digit code are required.',
+      });
+    }
+
+    let decoded;
+
+    try {
+      decoded = jwt.verify(twoFactorToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({
+        message: 'The two-factor login session is invalid or has expired.',
+      });
+    }
+
+    if (decoded.purpose !== '2fa-login' || !decoded.userId) {
+      return res.status(401).json({
+        message: 'Invalid two-factor login session.',
+      });
+    }
+
+    const user = await User.findById(decoded.userId)
+      .select('+twoFactorSecret');
+
+    if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+      return res.status(401).json({
+        message: 'Two-factor authentication is not available for this account.',
+      });
+    }
+
+    const { verify } = await getOtplib();
+
+    const result = await verify({
+      secret: user.twoFactorSecret,
+      token: normalizedToken,
+    });
+
+    if (!result.valid) {
+      return res.status(401).json({
+        message: 'The authenticator code is invalid or has expired.',
+      });
+    }
+
+    const loginToken = jwt.sign(
+      {
+        userId: user._id,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.status(200).json({
+      message: 'Login successful.',
+      requiresTwoFactor: false,
+      token: loginToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        profileComplete: user.profileComplete,
+      },
+    });
+  } catch (err) {
+    console.error('2FA login verification error:', err);
+
+    return res.status(500).json({
+      message: 'Server error while verifying two-factor authentication.',
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   verifyEmail,
   googleAuth,
   setupTwoFactor,
+  confirmTwoFactor,
+  verifyTwoFactorLogin,
 };
