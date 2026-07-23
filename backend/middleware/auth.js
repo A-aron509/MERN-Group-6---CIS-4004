@@ -9,6 +9,8 @@ const requireAuth = (req, res, next) => {
     return res.status(401).json({ message: 'No token provided.' });
   }
 
+  const token = authHeader.substring(7);
+  
   try {
   console.log("JWT_SECRET exists?", !!process.env.JWT_SECRET);
 
