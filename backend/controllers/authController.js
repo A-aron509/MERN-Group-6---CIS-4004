@@ -263,6 +263,67 @@ const setupTwoFactor = async (req, res) => {
   }
 };
 
+// POST /api/auth/2fa/confirm
+const confirmTwoFactor = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const normalizedToken = String(token || '').trim();
+
+    if (!/^\d{6}$/.test(normalizedToken)) {
+      return res.status(400).json({
+        message: 'Enter the six-digit code from your authenticator app.',
+      });
+    }
+
+    const user = await User.findById(req.userId)
+      .select('+twoFactorSecret');
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
+    if (user.twoFactorEnabled) {
+      return res.status(400).json({
+        message: 'Two-factor authentication is already enabled.',
+      });
+    }
+
+    if (!user.twoFactorSecret) {
+      return res.status(400).json({
+        message: 'Start two-factor authentication setup first.',
+      });
+    }
+
+    const { verify } = await getOtplib();
+
+    const result = await verify({
+      secret: user.twoFactorSecret,
+      token: normalizedToken,
+    });
+
+    if (!result.valid) {
+      return res.status(400).json({
+        message: 'The authenticator code is invalid or has expired.',
+      });
+    }
+
+    user.twoFactorEnabled = true;
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Two-factor authentication has been enabled successfully.',
+    });
+  } catch (err) {
+    console.error('2FA confirmation error:', err);
+
+    return res.status(500).json({
+      message: 'Server error while confirming two-factor authentication.',
+    });
+  }
+};
+
 // POST /api/auth/2fa/login
 const verifyTwoFactorLogin = async (req, res) => {
   try {
