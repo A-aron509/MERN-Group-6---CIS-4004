@@ -48,6 +48,19 @@ const UserSchema = new mongoose.Schema(
       type: Date,
     },
 
+    twoFactorEnabled: 
+    {
+      type: Boolean,
+      default: false,
+    },
+
+    twoFactorSecret: 
+  {
+      type: String,
+      default: null,
+      select: false,
+  },
+    
     // --- Profile setup fields (used later, but defined now so we don't
     // have to migrate the schema again) ---
     height: { type: Number }, // in inches or cm — decide a unit and stick to it
