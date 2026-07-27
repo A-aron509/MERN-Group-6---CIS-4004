@@ -6,13 +6,36 @@ import { Link } from "react-router-dom";
 function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    setMessage(
-      "If an account exists with that email, password reset instructions will be sent."
-    );
+    setMessage("");
+    setIsError(false);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Something went wrong.");
+      }
+
+      setMessage(data.message);
+    } catch (error) {
+      setIsError(true);
+      setMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -59,13 +82,17 @@ function ForgotPassword() {
                 <button
                   type="submit"
                   className="btn btn-success w-100 py-2"
+                  disabled={isLoading}
                 >
-                  Send Reset Link
+                  {isLoading ? "Sending..." : "Send Reset Link"}
                 </button>
               </form>
 
               {message && (
-                <div className="alert alert-success mt-3 mb-0" role="alert">
+                <div
+                  className={`alert ${isError ? "alert-danger" : "alert-success"} mt-3 mb-0`}
+                  role="alert"
+                >
                   {message}
                 </div>
               )}

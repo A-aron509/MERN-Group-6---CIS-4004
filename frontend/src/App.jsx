@@ -6,6 +6,7 @@ import Onboarding from "./pages/Onboarding";
 import MealPlan from "./pages/MealPlan";
 import ForgotPassword from "./pages/ForgotPassword";
 import VerifyEmail from "./pages/VerifyEmail";
+import ResetPassword from "./pages/ResetPassword";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/meal-plan" element={<MealPlan />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </BrowserRouter>
   );
