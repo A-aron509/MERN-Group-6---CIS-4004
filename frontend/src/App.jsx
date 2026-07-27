@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Onboarding from "./pages/Onboarding";
 import MealPlan from "./pages/MealPlan";
 import ForgotPassword from "./pages/ForgotPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/meal-plan" element={<MealPlan />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
       </Routes>
     </BrowserRouter>
   );
