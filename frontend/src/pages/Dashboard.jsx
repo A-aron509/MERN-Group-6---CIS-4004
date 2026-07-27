@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
@@ -15,6 +15,58 @@ function Dashboard() {
   const [securityMessage, setSecurityMessage] = useState("");
   const [securityError, setSecurityError] = useState(false);
   const [securityLoading, setSecurityLoading] = useState(false);
+
+  // --- Real profile + meal data ---
+  const [profile, setProfile] = useState(null);
+  const [mealPlan, setMealPlan] = useState(null);
+  const [dailyCalorieTarget, setDailyCalorieTarget] = useState(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState("");
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setDataError("Please log in again.");
+        setDataLoading(false);
+        return;
+      }
+
+      try {
+        const profileResponse = await fetch("/api/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const profileData = await profileResponse.json();
+
+        if (!profileResponse.ok) {
+          throw new Error(profileData.message || "Failed to load profile.");
+        }
+
+        setProfile(profileData.user);
+
+        // Only pull a meal plan if the profile is actually complete
+        if (profileData.user?.profileComplete) {
+          const mealResponse = await fetch("/api/meals/generate", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const mealData = await mealResponse.json();
+
+          if (mealResponse.ok) {
+            setMealPlan(mealData.mealPlan);
+            setDailyCalorieTarget(mealData.dailyCalorieTarget);
+          }
+        }
+      } catch (error) {
+        setDataError(error.message);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
 
   const saveTwoFactorStatus = () => {
     if (!user) {
@@ -162,13 +214,33 @@ function Dashboard() {
           </p>
         </div>
 
+        {dataError && (
+          <div className="alert alert-warning">{dataError}</div>
+        )}
+
+        {!dataLoading && profile && !profile.profileComplete && (
+          <div className="alert alert-info">
+            Finish setting up your profile to see your personalized calorie
+            target and meal plan.{" "}
+            <Link to="/onboarding" className="fw-semibold">
+              Complete it now
+            </Link>
+          </div>
+        )}
+
         <div className="row g-4 mb-4">
           <div className="col-md-4">
             <div className="card border-0 shadow-sm rounded-4 p-4">
               <h6 className="text-muted">Daily Calories</h6>
-              <h2 className="fw-bold text-success">1,850 - 2,100</h2>
+              <h2 className="fw-bold text-success">
+                {dataLoading
+                  ? "..."
+                  : dailyCalorieTarget
+                  ? `${dailyCalorieTarget} cal`
+                  : "Not set yet"}
+              </h2>
               <p className="mb-0 text-muted">
-                Estimated calorie target range
+                Estimated calorie target
               </p>
             </div>
           </div>
@@ -176,7 +248,9 @@ function Dashboard() {
           <div className="col-md-4">
             <div className="card border-0 shadow-sm rounded-4 p-4">
               <h6 className="text-muted">Fitness Goal</h6>
-              <h2 className="fw-bold">Build Muscle</h2>
+              <h2 className="fw-bold">
+                {dataLoading ? "..." : profile?.fitnessGoal || "Not set"}
+              </h2>
               <p className="mb-0 text-muted">Based on your profile setup</p>
             </div>
           </div>
@@ -184,8 +258,16 @@ function Dashboard() {
           <div className="col-md-4">
             <div className="card border-0 shadow-sm rounded-4 p-4">
               <h6 className="text-muted">Activity Level</h6>
-              <h2 className="fw-bold">Moderate</h2>
-              <p className="mb-0 text-muted">3-4 workouts per week</p>
+              <h2 className="fw-bold text-capitalize">
+                {dataLoading ? "..." : profile?.activityLevel || "Not set"}
+              </h2>
+              <p className="mb-0 text-muted">
+                {dataLoading
+                  ? ""
+                  : profile?.weightliftingFrequency !== undefined
+                  ? `${profile.weightliftingFrequency} workouts per week`
+                  : ""}
+              </p>
             </div>
           </div>
         </div>
@@ -207,51 +289,71 @@ function Dashboard() {
                 </Link>
               </div>
 
-              <div className="row g-3 mt-2">
-                <div className="col-md-6">
-                  <div className="border rounded-4 p-3 h-100">
-                    <h5>🍳 Breakfast</h5>
-                    <p className="mb-1 fw-semibold">Greek Yogurt Bowl</p>
-                    <small className="text-muted">
-                      Greek yogurt, berries, granola, honey
-                    </small>
+              {dataLoading ? (
+                <p className="text-muted mt-3">Loading your meal plan...</p>
+              ) : mealPlan ? (
+                <div className="row g-3 mt-2">
+                  <div className="col-md-6">
+                    <div className="border rounded-4 p-3 h-100">
+                      <h5>🍳 Breakfast</h5>
+                      <p className="mb-1 fw-semibold">
+                        {mealPlan.breakfast?.label || "Not available"}
+                      </p>
+                      <small className="text-muted">
+                        {mealPlan.breakfast?.calories
+                          ? `${mealPlan.breakfast.calories} calories`
+                          : ""}
+                      </small>
+                    </div>
                   </div>
-                </div>
 
-                <div className="col-md-6">
-                  <div className="border rounded-4 p-3 h-100">
-                    <h5>🥗 Lunch</h5>
-                    <p className="mb-1 fw-semibold">Salmon Rice Bowl</p>
-                    <small className="text-muted">
-                      Salmon, rice, avocado, cucumber, greens
-                    </small>
+                  <div className="col-md-6">
+                    <div className="border rounded-4 p-3 h-100">
+                      <h5>🥗 Lunch</h5>
+                      <p className="mb-1 fw-semibold">
+                        {mealPlan.lunch?.label || "Not available"}
+                      </p>
+                      <small className="text-muted">
+                        {mealPlan.lunch?.calories
+                          ? `${mealPlan.lunch.calories} calories`
+                          : ""}
+                      </small>
+                    </div>
                   </div>
-                </div>
 
-                <div className="col-md-6">
-                  <div className="border rounded-4 p-3 h-100">
-                    <h5>🍗 Dinner</h5>
-                    <p className="mb-1 fw-semibold">
-                      Chicken Power Plate
-                    </p>
-                    <small className="text-muted">
-                      Chicken, sweet potatoes, vegetables
-                    </small>
+                  <div className="col-md-6">
+                    <div className="border rounded-4 p-3 h-100">
+                      <h5>🍗 Dinner</h5>
+                      <p className="mb-1 fw-semibold">
+                        {mealPlan.dinner?.label || "Not available"}
+                      </p>
+                      <small className="text-muted">
+                        {mealPlan.dinner?.calories
+                          ? `${mealPlan.dinner.calories} calories`
+                          : ""}
+                      </small>
+                    </div>
                   </div>
-                </div>
 
-                <div className="col-md-6">
-                  <div className="border rounded-4 p-3 h-100">
-                    <h5>🍎 Snack</h5>
-                    <p className="mb-1 fw-semibold">
-                      Apple &amp; Peanut Butter
-                    </p>
-                    <small className="text-muted">
-                      Apple slices with peanut butter
-                    </small>
+                  <div className="col-md-6">
+                    <div className="border rounded-4 p-3 h-100">
+                      <h5>🍎 Snack</h5>
+                      <p className="mb-1 fw-semibold">
+                        {mealPlan.snack?.label || "Not available"}
+                      </p>
+                      <small className="text-muted">
+                        {mealPlan.snack?.calories
+                          ? `${mealPlan.snack.calories} calories`
+                          : ""}
+                      </small>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-muted mt-3">
+                  Complete your profile to get a personalized meal plan.
+                </p>
+              )}
             </div>
           </div>
 
@@ -259,21 +361,33 @@ function Dashboard() {
             <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
               <h4 className="fw-bold">Profile Summary</h4>
 
-              <p className="mb-1">
-                <strong>Height:</strong> 5&apos;4
-              </p>
+              {dataLoading ? (
+                <p className="text-muted mb-0">Loading...</p>
+              ) : profile ? (
+                <>
+                  <p className="mb-1">
+                    <strong>Height:</strong>{" "}
+                    {profile.height ? `${profile.height} in` : "Not set"}
+                  </p>
 
-              <p className="mb-1">
-                <strong>Weight:</strong> 145 - 160 lbs
-              </p>
+                  <p className="mb-1">
+                    <strong>Weight:</strong> {profile.weightRange || "Not set"}
+                  </p>
 
-              <p className="mb-1">
-                <strong>Goal:</strong> Build Muscle
-              </p>
+                  <p className="mb-1">
+                    <strong>Goal:</strong> {profile.fitnessGoal || "Not set"}
+                  </p>
 
-              <p className="mb-0">
-                <strong>Cardio:</strong> Walking, 2x/week
-              </p>
+                  <p className="mb-0">
+                    <strong>Cardio:</strong>{" "}
+                    {profile.cardioType
+                      ? `${profile.cardioType}, ${profile.cardioFrequency || 0}x/week`
+                      : "Not set"}
+                  </p>
+                </>
+              ) : (
+                <p className="text-muted mb-0">No profile data yet.</p>
+              )}
             </div>
 
             <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
